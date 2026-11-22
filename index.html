@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>100 days drawing</title>
+<style>
+:root{
+  --p-bg:#D3E47A; --p-card:#FFFFFF; --p-ink:#2B2B2B; --p-par:#CFCFCF;
+  --sans:"Helvetica Neue",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden}
+body{background:var(--p-bg);color:var(--p-ink);font-family:var(--sans);transition:background .3s}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+
+.cols{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:22px;height:100%;padding:0 54px 0 14px}
+.col{height:100%;overflow-y:auto;scrollbar-width:none;padding:14px 0 40px;overscroll-behavior:contain}
+.col::-webkit-scrollbar{display:none}
+.col h2{position:sticky;top:-14px;z-index:1;margin:-14px 0 12px;padding:14px 0 6px;background:var(--p-bg);transition:background .3s;
+  font:500 clamp(28px,3.4vw,58px)/.95 var(--sans);letter-spacing:-.03em}
+.col h2 span{background:var(--p-card);color:#2B2B2B;padding:0 6px}
+.col h2{text-align:center}
+.vids{display:flex;flex-direction:column;gap:14px}
+.vids video{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#000}
+.text{font:15px/1.55 var(--mono);letter-spacing:.01em;padding:22px 4px 0;color:var(--p-ink)}
+.text p{margin:0 0 1.2em}
+.list{display:flex;flex-direction:column;align-items:center;gap:18px}
+.card{display:block;width:min(85%,420px);background:var(--p-card);padding:8px;text-align:left}
+.half{width:100%;aspect-ratio:var(--ar,1);overflow:hidden;background:var(--p-par)}
+.half img{display:block;height:100%;width:200%;max-width:none;object-fit:cover}
+.right .half img{margin-left:-100%}
+.card .n{font:13px/1.2 var(--mono);padding-top:6px;color:#2B2B2B}
+
+.info{position:fixed;top:12px;right:12px;width:34px;height:34px;border-radius:50%;border:2.5px solid var(--p-ink);
+  font:700 18px/1 Georgia,serif;color:var(--p-ink);display:grid;place-items:center;background:transparent}
+.info.pal{right:12px;font:16px/1 var(--sans)}
+.info:hover{background:var(--p-card)}
+.status{background:var(--p-card);display:inline-block;padding:2px 6px;font-size:14px}
+
+.zoom{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;place-items:center;z-index:9;cursor:zoom-out}
+.zoom.on{display:grid}
+.zoom img{max-width:92vw;max-height:92vh}
+
+@media (max-width:800px){
+  html,body{overflow:auto;height:auto}
+  .cols{grid-template-columns:1fr 1fr;height:auto;gap:10px;padding:56px 16px 0}
+  .col{height:auto;overflow:visible}
+  .mid{grid-column:1 / -1;order:-1}
+  .card{width:100%}
+  .col h2{font-size:22px}
+  .list{gap:10px}
+  .card{padding:5px}
+}
+</style>
+</head>
+<body>
+<div class="cols">
+  <section class="col left" id="colL"><h2><span>Left hand</span></h2><div class="list" id="listL"><span class="status" id="status">are.na에서 불러오는 중…</span></div></section>
+  <section class="col mid" id="colM"><h2><span>100 days drawing</span></h2>
+    <div class="vids">
+      <video src="media/drawing-1.mp4" autoplay muted loop playsinline></video>
+      <video src="media/drawing-2.mp4" autoplay muted loop playsinline></video>
+    </div>
+    <div class="text">
+      <p>I'm right-handed. For 100 days, I draw the same object twice: once with my right hand, once with my left.</p>
+      <p>I've longed for art since I was young. Wherever my eyes rested, art was there. But it always felt like a far-off world. So many people were already good at it. I didn't think I had the talent, or the right. I thought it was too late. My eyes had learned to see well, but my hands were still at the starting line. The distance felt so vast that I kept putting off the start.</p>
+      <p>So I decided not to go back. I would make a new path from right where I stood. 100 days, one page a day.</p>
+      <p>A right-handed person drawing with the left hand is bound to draw badly. I wanted to step away from comparing myself to others, so I gave myself a handicap. In a way, I gave myself a reason not to be good.</p>
+      <p>To keep going every day, I couldn't go far. So I began where my eyes land first: the things in my home. I draw each one with my familiar right hand, then once more with my clumsy left. Two drawings sit side by side on a single page.</p>
+      <p>Now I don't compare my hands to anyone else's. I just look at my own two, side by side.</p>
+    </div>
+  </section>
+  <section class="col right" id="colR"><h2><span>Right hand</span></h2><div class="list" id="listR"></div></section>
+</div>
+
+<button class="info pal" id="palBtn" aria-label="배경색 바꾸기">◐</button>
+<div class="zoom" id="zoom"><img id="zoomImg" alt=""></div>
+
+<script>
+const CHANNEL = '1-100-days-drawing';
+const $ = id => document.getElementById(id);
+
+const BGS = ['#D3E47A', '#CAC444', '#4D53AE', '#F3DF7E', '#D3A9BF', '#5B5A17', '#111111'];
+const INKS = ['#2B2B2B', '#25285E', '#FEFFDB', '#5C4520', '#3E3C10', '#E6E8B0', '#F2F2EE'];
+let bgi = 0;
+try { bgi = +(localStorage.getItem('dt.bg') || 0) % BGS.length; } catch {}
+function paint() {
+  document.body.style.setProperty('--p-bg', BGS[bgi]);
+  document.body.style.setProperty('--p-ink', INKS[bgi]);
+  for (const b of document.querySelectorAll('.info')) { b.style.color = INKS[bgi]; b.style.borderColor = INKS[bgi]; }
+}
+$('palBtn').onclick = () => { bgi = (bgi + 1) % BGS.length; try { localStorage.setItem('dt.bg', bgi); } catch {} paint(); };
+paint();
+
+/* are.na: 공개 채널은 키 없이 읽힘. 그림(Image) 블록만, 채널 순서대로 */
+async function load() {
+  const blocks = [];
+  for (let page = 1; page < 20; page++) {
+    const r = await fetch(`https://api.are.na/v2/channels/${CHANNEL}/contents?per=100&page=${page}`);
+    if (!r.ok) throw new Error('are.na ' + r.status);
+    const d = await r.json();
+    blocks.push(...d.contents);
+    if (d.contents.length < 100) break;
+  }
+  return blocks.filter(b => b.class === 'Image' && b.image).sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+}
+
+function card(b, i, side) {
+  const c = document.createElement('button');
+  c.className = 'card';
+  const box = document.createElement('div');
+  box.className = 'half';
+  const img = new Image();
+  img.loading = 'lazy';
+  img.src = b.image.display.url;
+  img.alt = `${String(i + 1).padStart(2, '0')} ${side === 'L' ? '왼손' : '오른손'}`;
+  // 반쪽 비율 = (원본 가로/2) / 세로. 불러오면 맞춤
+  img.onload = () => box.style.setProperty('--ar', (img.naturalWidth / 2) / img.naturalHeight);
+  box.append(img);
+  const n = document.createElement('div');
+  n.className = 'n';
+  n.textContent = String(i + 1).padStart(2, '0');
+  c.append(box, n);
+  c.onclick = () => { $('zoomImg').src = b.image.display.url; $('zoom').classList.add('on'); };
+  return c;
+}
+
+load().then(imgs => {
+  $('listL').innerHTML = ''; $('listR').innerHTML = '';
+  imgs.forEach((b, i) => { $('listL').append(card(b, i, 'L')); $('listR').append(card(b, i, 'R')); });
+  if (!imgs.length) $('listL').innerHTML = '<span class="status">채널에 이미지가 없어요</span>';
+}).catch(e => { $('status').textContent = '불러오기 실패: ' + e.message; });
+
+$('zoom').onclick = () => $('zoom').classList.remove('on');
+</script>
+</body>
+</html>
