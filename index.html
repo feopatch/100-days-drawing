@@ -37,6 +37,11 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   font:700 18px/1 Georgia,serif;color:var(--p-ink);display:grid;place-items:center;background:transparent}
 .info.pal{right:12px;font:16px/1 var(--sans)}
 .info:hover{background:var(--p-card)}
+.find{position:fixed;z-index:5;top:12px;right:54px;width:78px;height:34px;border-radius:17px;border:2.5px solid var(--p-ink);
+  background:transparent;color:var(--p-ink);font:14px/1 var(--mono);text-align:center;padding:0 10px;outline:none}
+.find::placeholder{color:currentColor;opacity:.55}
+.find:focus,.find:hover{background:var(--p-card);color:#2B2B2B}
+.card.hit{outline:3px solid var(--p-ink);outline-offset:3px}
 .status{background:var(--p-card);display:inline-block;padding:2px 6px;font-size:14px}
 
 .zoom{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;place-items:center;z-index:9;cursor:zoom-out}
@@ -75,6 +80,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   <section class="col right" id="colR"><h2><span>Right hand</span></h2><div class="list" id="listR"></div></section>
 </div>
 
+<input class="find" id="find" type="text" inputmode="numeric" placeholder="No." aria-label="번호로 찾기" autocomplete="off">
 <button class="info pal" id="palBtn" aria-label="배경색 바꾸기">◐</button>
 <div class="zoom" id="zoom"><img id="zoomImg" alt=""></div>
 
@@ -110,6 +116,7 @@ async function load() {
 function card(b, i, side) {
   const c = document.createElement('button');
   c.className = 'card';
+  c.dataset.n = i + 1;
   const box = document.createElement('div');
   box.className = 'half';
   const img = new Image();
@@ -132,6 +139,36 @@ load().then(imgs => {
   imgs.forEach((b, i) => { $('listL').append(card(b, i, 'L')); $('listR').append(card(b, i, 'R')); });
   if (!imgs.length) $('listL').innerHTML = '<span class="status">채널에 이미지가 없어요</span>';
 }).catch(e => { $('status').textContent = '불러오기 실패: ' + e.message; });
+
+/* 번호 찾기: 양쪽 칸을 그 번호 카드로 스크롤하고 잠깐 테두리 */
+function jump(n) {
+  const cards = document.querySelectorAll(`.card[data-n="${n}"]`);
+  if (!cards.length) { $('find').animate([{transform:'translateX(-4px)'},{transform:'translateX(4px)'},{transform:'none'}], 200); return; }
+  // 앞쪽 그림이 아직 안 불러와져 있으면 높이가 바뀌어 위치가 밀림 → 먼저 불러온 뒤 이동
+  const before = [...document.querySelectorAll('.card')].filter(c => +c.dataset.n <= n).map(c => c.querySelector('img'));
+  before.forEach(img => img.loading = 'eager');
+  Promise.race([
+    Promise.all(before.map(img => img.complete ? 0 : new Promise(r => img.addEventListener('load', r, { once: true }) || img.addEventListener('error', r, { once: true })))),
+    new Promise(r => setTimeout(r, 2500))
+  ]).then(() => requestAnimationFrame(() => go(cards)));
+}
+function go(cards) {
+  const mobile = matchMedia('(max-width:800px)').matches;
+  for (const c of cards) {
+    if (mobile) { if (c.closest('.left')) window.scrollTo({ top: c.getBoundingClientRect().top + scrollY - 70, behavior: 'smooth' }); }
+    else {
+      const col = c.closest('.col'), h = col.querySelector('h2').offsetHeight;
+      col.scrollTo({ top: col.scrollTop + c.getBoundingClientRect().top - col.getBoundingClientRect().top - h - 10, behavior: 'smooth' });
+    }
+    c.classList.add('hit'); setTimeout(() => c.classList.remove('hit'), 1600);
+  }
+}
+$('find').onkeydown = e => {
+  if (e.key !== 'Enter') return;
+  const n = parseInt($('find').value, 10);
+  if (n) jump(n);
+  $('find').blur();
+};
 
 $('zoom').onclick = () => $('zoom').classList.remove('on');
 </script>
